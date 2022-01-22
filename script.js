@@ -3,7 +3,7 @@
 class Workout {
   date = new Date();
   id = (Date.now() + "").slice(-10); // Check for ID libraries!!!
-  clicks = 0;
+
   constructor(coords, distance, duration) {
     this.coords = coords; // [lat, lng]
     this.distance = distance; // in km
@@ -29,9 +29,6 @@ class Workout {
     this.description = `${this.type[0].toUpperCase()}${this.type.slice(1)} on ${
       months[this.date.getMonth()]
     } ${this.date.getDate()}`;
-  }
-  click() {
-    this.clicks++;
   }
 }
 
@@ -68,10 +65,6 @@ class Cycling extends Workout {
   }
 }
 
-// const run1 = new Running([39, -12], 5.2, 24, 178);
-// const cycling1 = new Cycling([39, -12], 27, 95, 523);
-// console.log(run1, cycling1);
-
 //Application architecture
 const form = document.querySelector(".form");
 const containerWorkouts = document.querySelector(".workouts");
@@ -89,6 +82,10 @@ class App {
   #workouts = [];
 
   constructor() {
+    //Get users position
+    //Get data from local storage
+    this.#getLocalStorage();
+
     this.#getPosition();
     form.addEventListener("submit", this.#newWorkout.bind(this));
     inputType.addEventListener("change", this.#toggleElevationField);
@@ -117,6 +114,10 @@ class App {
 
     // handling clicks on map
     this.#map.on("click", this.#showForm.bind(this));
+
+    this.#workouts.forEach((work) => {
+      this.#renderWorkoutMarker(work);
+    });
   }
 
   #showForm(mapE) {
@@ -184,7 +185,7 @@ class App {
 
     // Add new object to workout array
     this.#workouts.push(workout);
-    console.log(workout);
+
     //Render workout on map as marker
     this.#renderWorkoutMarker(workout);
 
@@ -192,6 +193,10 @@ class App {
     this.#renderWorkout(workout);
     //Hide form + Clear input fields
     this.#hideForm();
+
+    // Set local storage to all workouts
+
+    this.#setLocalStorage();
   }
 
   #renderWorkoutMarker(workout) {
@@ -271,8 +276,6 @@ class App {
       (work) => work.id === workoutEl.dataset.id
     );
 
-    console.log(workout);
-
     this.#map.setView(workout.coords, this.#mapZoomLevel, {
       animate: true,
       pan: {
@@ -281,7 +284,27 @@ class App {
     });
 
     //using the public interface
-    workout.click();
+    // workout.click();
+  }
+
+  #setLocalStorage() {
+    localStorage.setItem("workouts", JSON.stringify(this.#workouts));
+  }
+
+  #getLocalStorage() {
+    const data = JSON.parse(localStorage.getItem("workouts"));
+    if (!data) return;
+
+    this.#workouts = data;
+
+    this.#workouts.forEach((work) => {
+      this.#renderWorkout(work);
+    });
+  }
+
+  reset() {
+    localStorage.removeItem("workouts");
+    location.reload();
   }
 }
 
