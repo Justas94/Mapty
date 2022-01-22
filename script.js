@@ -3,14 +3,14 @@
 class Workout {
   date = new Date();
   id = (Date.now() + "").slice(-10); // Check for ID libraries!!!
-
+  clicks = 0;
   constructor(coords, distance, duration) {
     this.coords = coords; // [lat, lng]
     this.distance = distance; // in km
     this.duration = duration; // in min
   }
 
-  #setDescription() {
+  _setDescription() {
     const months = [
       "January",
       "February",
@@ -30,6 +30,9 @@ class Workout {
       months[this.date.getMonth()]
     } ${this.date.getDate()}`;
   }
+  click() {
+    this.clicks++;
+  }
 }
 
 class Running extends Workout {
@@ -39,7 +42,7 @@ class Running extends Workout {
     super(coords, distance, duration);
     this.cadence = cadence;
     this.calcPace();
-    this.#setDescription();
+    this._setDescription();
   }
 
   calcPace() {
@@ -54,7 +57,8 @@ class Cycling extends Workout {
   constructor(coords, distance, duration, elevationGain) {
     super(coords, distance, duration);
     this.elevationGain = elevationGain;
-    this.#setDescription();
+    this.calcSpeed();
+    this._setDescription();
   }
 
   calcSpeed() {
@@ -80,6 +84,7 @@ const inputElevation = document.querySelector(".form__input--elevation");
 class App {
   // Private instances
   #map;
+  #mapZoomLevel = 13;
   #mapEvent;
   #workouts = [];
 
@@ -87,6 +92,7 @@ class App {
     this.#getPosition();
     form.addEventListener("submit", this.#newWorkout.bind(this));
     inputType.addEventListener("change", this.#toggleElevationField);
+    containerWorkouts.addEventListener("click", this.#moveToPopup.bind(this));
   }
   #getPosition() {
     if (navigator.geolocation)
@@ -102,7 +108,7 @@ class App {
     const latitude = position.coords.latitude;
     const longitude = position.coords.longitude;
     const coords = [latitude, longitude];
-    this.#map = L.map("map").setView(coords, 13);
+    this.#map = L.map("map").setView(coords, this.#mapZoomLevel);
 
     L.tileLayer("https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png", {
       attribution:
@@ -226,7 +232,6 @@ class App {
 
     if (workout.type === "running")
       html += `
-    }
         <div class="workout__details">
         <span class="workout__icon">⚡️</span>
         <span class="workout__value">${workout.pace.toFixed(1)}</span>
@@ -255,6 +260,28 @@ class App {
     `;
 
     form.insertAdjacentHTML("afterend", html);
+  }
+
+  #moveToPopup(e) {
+    const workoutEl = e.target.closest(".workout");
+
+    if (!workoutEl) return;
+
+    const workout = this.#workouts.find(
+      (work) => work.id === workoutEl.dataset.id
+    );
+
+    console.log(workout);
+
+    this.#map.setView(workout.coords, this.#mapZoomLevel, {
+      animate: true,
+      pan: {
+        duration: 1,
+      },
+    });
+
+    //using the public interface
+    workout.click();
   }
 }
 
